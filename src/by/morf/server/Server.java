@@ -3,7 +3,6 @@ package by.morf.server;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.net.ServerSocket;
-import java.net.Socket;
 
 public class Server{
     static ArrayList<ListenerThread> clientList;

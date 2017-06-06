@@ -7,7 +7,9 @@ public class MessagesThread implements Runnable {
             try{
                 Object message = Server.messages.take();
                 for(ListenerThread client : Server.clientList) {
-                    client.sendData(message);
+                    if (client.isAlive()) {
+                        client.sendData(message);
+                    }
                 }
             }
             catch(Exception e){

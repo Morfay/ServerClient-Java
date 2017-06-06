@@ -2,6 +2,8 @@ package by.morf.client;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.*;
 import java.net.ConnectException;
 import java.net.InetAddress;
@@ -40,6 +42,15 @@ public class Client extends JFrame implements Runnable {
         add(b1);
 
         setVisible(true);
+
+        this.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent event) {
+                closeConnection();
+
+                super.windowClosing(event);
+            }
+        });
     }
 
     public static void main(String[] args) {
@@ -53,8 +64,7 @@ public class Client extends JFrame implements Runnable {
             input = new ObjectInputStream(connection.getInputStream());
 
             Object data;
-            while (true) {
-                data = input.readObject();
+            while ((data = input.readObject()) != null) {
                 ta1.append(data.toString());
             }
         } catch (ConnectException e){
@@ -64,14 +74,8 @@ public class Client extends JFrame implements Runnable {
             e.printStackTrace();
         }
 
-        finally{
-            try {
-                output.close();
-                input.close();
-                connection.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        finally {
+            closeConnection();
         }
     }
 
@@ -79,6 +83,14 @@ public class Client extends JFrame implements Runnable {
         try {
             output.writeObject(data + "\n\r");
             output.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void closeConnection() {
+        try {
+            connection.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
