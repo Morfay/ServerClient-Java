@@ -9,6 +9,7 @@ public class ListenerThread implements Runnable {
     private Socket connection;
     private ObjectOutputStream output;
     private ObjectInputStream input;
+    private MessageObj message;
     private boolean isAlive = false;
 
     public ListenerThread(Socket socket) {
@@ -21,9 +22,8 @@ public class ListenerThread implements Runnable {
             input = new ObjectInputStream(connection.getInputStream());
             isAlive = true;
 
-            Object data;
-            while ((data = input.readObject()) != null) {
-                Server.messages.put(Server.clientList.indexOf(this) + ": " + data);
+            while ((message = (MessageObj) input.readObject()) != null) {
+                Server.messages.put(message);
             }
         } catch (EOFException e) {
             // Client quit for any reason
@@ -35,7 +35,7 @@ public class ListenerThread implements Runnable {
         }
     }
 
-    public void sendData(Object data) {
+    public void sendData(MessageObj data) {
         try {
             output.writeObject(data);
             output.flush();

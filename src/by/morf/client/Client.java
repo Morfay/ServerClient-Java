@@ -1,7 +1,12 @@
 package by.morf.client;
 
+import by.morf.server.MessageObj;
+
 import javax.swing.*;
+import javax.swing.text.DefaultCaret;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.*;
@@ -9,11 +14,16 @@ import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.Socket;
 
-public class Client extends JFrame implements Runnable {
+public class Client extends JFrame implements Runnable, ActionListener {
     static private Socket connection;
     static private ObjectOutputStream output;
     static private ObjectInputStream input;
+    static private String name;
+    static private String server;
+    private MessageObj message;
     private final JTextArea ta1;
+    private final JTextField t1;
+    private final JButton b1;
 
     public Client(String title) {
         super(title);
@@ -23,19 +33,18 @@ public class Client extends JFrame implements Runnable {
         setLocationRelativeTo(null);
         setResizable(false);
 
-        final JTextField t1 = new JTextField(17);
-        final JButton b1 = new JButton("Send");
+        t1 = new JTextField(17);
+        b1 = new JButton("Send");
         ta1 = new JTextArea(14,20);
         ta1.setEditable(false);
+        ta1.setLineWrap(true);
+        DefaultCaret caret = (DefaultCaret) ta1.getCaret();
+        caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+
         JScrollPane sp = new JScrollPane(ta1);
 
-
-        b1.addActionListener(e -> {
-            if (e.getSource() == b1 && !t1.getText().equals("")) {
-                sendData(t1.getText());
-                t1.setText("");
-            }
-        });
+        b1.addActionListener(this);
+        t1.addActionListener(this);
 
         add(sp);
         add(t1);
@@ -58,14 +67,18 @@ public class Client extends JFrame implements Runnable {
     }
 
     public void run() {
+        server = JOptionPane.showInputDialog(null, "Enter server address:", "127.0.0.1:5678");
+        String[] ipPort = server.split(":");
+
         try {
-            connection = new Socket(InetAddress.getByName("127.0.0.1"), 5678);
+            connection = new Socket(InetAddress.getByName(ipPort[0]), Integer.parseInt(ipPort[1]));
             output = new ObjectOutputStream(connection.getOutputStream());
             input = new ObjectInputStream(connection.getInputStream());
 
-            Object data;
-            while ((data = input.readObject()) != null) {
-                ta1.append(data.toString());
+            name = JOptionPane.showInputDialog(null, "Enter your name:", "Guest");
+
+            while ((message = (MessageObj) input.readObject()) != null) {
+                ta1.append(message.sender + ": " + message.text);
             }
         } catch (ConnectException e){
             e.printStackTrace();
@@ -79,9 +92,13 @@ public class Client extends JFrame implements Runnable {
         }
     }
 
-    private static void sendData(Object data) {
+    private static void sendData(Object text) {
         try {
-            output.writeObject(data + "\n\r");
+            MessageObj data = new MessageObj();
+            data.sender = name;
+            data.text = text + "\n\r";
+
+            output.writeObject(data);
             output.flush();
         } catch (Exception e) {
             e.printStackTrace();
@@ -93,6 +110,13 @@ public class Client extends JFrame implements Runnable {
             connection.close();
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public void actionPerformed(ActionEvent e) {
+        if ((e.getSource() == b1 || e.getSource() == t1) && !t1.getText().equals("")) {
+            sendData(t1.getText());
+            t1.setText("");
         }
     }
 }
