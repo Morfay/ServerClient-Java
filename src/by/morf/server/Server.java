@@ -6,7 +6,7 @@ import java.net.ServerSocket;
 
 public class Server{
     static ArrayList<ListenerThread> clientList;
-    static LinkedBlockingQueue<Object> messages;
+    static LinkedBlockingQueue<MessageObj> messages;
 
     public static void main(String[] args) {
         clientList = new ArrayList<>();

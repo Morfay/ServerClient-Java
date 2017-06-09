@@ -1,5 +1,6 @@
 package by.morf.client;
 
+import by.morf.server.HelloObj;
 import by.morf.server.MessageObj;
 
 import javax.swing.*;
@@ -13,20 +14,23 @@ import java.io.*;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.UUID;
 
 public class Client extends JFrame implements Runnable, ActionListener {
     static private Socket connection;
     static private ObjectOutputStream output;
     static private ObjectInputStream input;
     static private String name;
-    static private String server;
-    private MessageObj message;
+    static private UUID id;
+
     private final JTextArea ta1;
     private final JTextField t1;
     private final JButton b1;
 
     public Client(String title) {
         super(title);
+        id = UUID.randomUUID();
+
         setLayout(new FlowLayout(FlowLayout.LEFT));
         setSize(300, 300);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -56,7 +60,6 @@ public class Client extends JFrame implements Runnable, ActionListener {
             @Override
             public void windowClosing(WindowEvent event) {
                 closeConnection();
-
                 super.windowClosing(event);
             }
         });
@@ -67,22 +70,22 @@ public class Client extends JFrame implements Runnable, ActionListener {
     }
 
     public void run() {
-        server = JOptionPane.showInputDialog(null, "Enter server address:", "127.0.0.1:5678");
+        String server = JOptionPane.showInputDialog(null, "Enter server address:", "127.0.0.1:5678");
         String[] ipPort = server.split(":");
 
+        name = JOptionPane.showInputDialog(null, "Enter your name:", "Guest");
+        openConnection(ipPort[0], Integer.parseInt(ipPort[1]));
+
         try {
-            connection = new Socket(InetAddress.getByName(ipPort[0]), Integer.parseInt(ipPort[1]));
-            output = new ObjectOutputStream(connection.getOutputStream());
-            input = new ObjectInputStream(connection.getInputStream());
-
-            name = JOptionPane.showInputDialog(null, "Enter your name:", "Guest");
-
+            MessageObj message;
+            String messagePrefix;
             while ((message = (MessageObj) input.readObject()) != null) {
-                ta1.append(message.sender + ": " + message.text);
+                messagePrefix = "";
+                if (message.getSender() != null) {
+                    messagePrefix = id.toString().equals(message.getSenderId())? "You: " : message.getSender() + ": ";
+                }
+                ta1.append(messagePrefix + message.getText() + System.lineSeparator());
             }
-        } catch (ConnectException e){
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Unable connect to server!", "Error", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -92,12 +95,8 @@ public class Client extends JFrame implements Runnable, ActionListener {
         }
     }
 
-    private static void sendData(Object text) {
+    private static void sendData(Object data) {
         try {
-            MessageObj data = new MessageObj();
-            data.sender = name;
-            data.text = text + "\n\r";
-
             output.writeObject(data);
             output.flush();
         } catch (Exception e) {
@@ -113,9 +112,28 @@ public class Client extends JFrame implements Runnable, ActionListener {
         }
     }
 
+    private static void openConnection(String address, int port) {
+        try {
+            connection = new Socket(InetAddress.getByName(address), port);
+            output = new ObjectOutputStream(connection.getOutputStream());
+            input = new ObjectInputStream(connection.getInputStream());
+
+            HelloObj hello = new HelloObj(name, id.toString());
+            sendData(hello);
+
+        }  catch (ConnectException e){
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Unable connect to server!", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public void actionPerformed(ActionEvent e) {
         if ((e.getSource() == b1 || e.getSource() == t1) && !t1.getText().equals("")) {
-            sendData(t1.getText());
+            MessageObj data = new MessageObj(t1.getText());
+
+            sendData(data);
             t1.setText("");
         }
     }
