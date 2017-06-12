@@ -74,6 +74,8 @@ public class Client extends JFrame implements Runnable, ActionListener {
         String[] ipPort = server.split(":");
 
         name = JOptionPane.showInputDialog(null, "Enter your name:", "Guest");
+        setTitle(getTitle() + " - " + name);
+
         openConnection(ipPort[0], Integer.parseInt(ipPort[1]));
 
         try {
